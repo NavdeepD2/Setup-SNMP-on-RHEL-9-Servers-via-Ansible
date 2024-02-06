@@ -24,6 +24,7 @@ syscontact TYPHERE
 
 - Start and enable snmpd service
 - Whitelist ports if firewalld is running and Reload firewalld
+
 161/udp
   
 162/udp
