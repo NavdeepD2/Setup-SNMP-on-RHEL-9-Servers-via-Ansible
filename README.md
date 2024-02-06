@@ -14,8 +14,11 @@ syscontact Root <root@localhost> (configure /etc/snmp/snmp.local.conf)
 
 
 SNMP community id HERE
+
 Target Host HERE
+
 syslocation TYPEHERE
+
 syscontact TYPHERE
 
 
