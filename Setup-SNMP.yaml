@@ -1,0 +1,98 @@
+--- # Written by Navdeep Singh ( navdeep.d2@gmail.com ) | the-d2.com
+- name: Check SSH, root password, and net-snmp on RHEL 9 servers
+  hosts: all
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: Check if SSH port 22 is open
+      wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 22
+        state: started
+      register: ssh_check
+      ignore_errors: yes
+
+    - name: Check if net-snmp package is installed
+      become: yes
+      command: rpm -q net-snmp
+      register: snmp_check
+      ignore_errors: yes
+
+    - name: Install net-snmp package if not installed
+      become: yes
+      package:
+        name: net-snmp
+        state: present
+      when: snmp_check.rc != 0
+
+
+    - name: Backup original snmpd.conf if not exists
+      become: yes
+      command: cp /etc/snmp/snmpd.conf "/etc/snmp/snmpd.conf_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}_before-install_backup"
+      args:
+        creates: "/etc/snmp/snmpd.conf_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}_before-install_backup"
+      when: snmp_check.rc != 0
+
+    - name: Capture lines starting with "sys" from snmpd.conf
+      become: yes
+      shell: cat /etc/snmp/snmpd.conf | grep '^sys'
+      register: sys_lines
+      changed_when: false
+      ignore_errors: true
+      when: snmp_check.rc != 0
+
+    - name: Comment out lines starting with "sys" in snmpd.conf
+      become: yes
+      lineinfile:
+        path: /etc/snmp/snmpd.conf
+        regexp: '^sys.*'
+        line: "# {{ item }}"
+      loop: "{{ sys_lines.stdout_lines }}"
+      when: snmp_check.rc != 0 and sys_lines is defined
+
+    - name: Add custom parameters snmpd.conf file
+      become: yes
+      blockinfile:
+        path: /etc/snmp/snmpd.conf
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Do not edit this section"
+        block: |
+
+          # Change following parameters
+          SNMP community id HERE
+          Target Host HERE
+          syslocation TYPEHERE
+          syscontact TYPHERE
+      when: snmp_check.rc != 0
+
+    - name: Start and enable snmpd service
+      become: yes
+      service:
+        name: snmpd
+        state: started
+        enabled: yes
+      when: snmp_check.rc != 0
+
+    - name: Check if firewalld service is running
+      command: systemctl is-active firewalld
+      register: firewalld_status
+      ignore_errors: true
+
+    - name: Whitelist ports if firewalld is running
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      when: firewalld_status.stdout == "active" and snmp_check.rc != 0
+      with_items:
+        - 161/udp
+        - 162/udp
+        - 161/tcp
+        - 162/tcp
+
+    - name: Reload firewalld
+      service:
+        name: firewalld
+        state: reloaded
+      when: firewalld_status.stdout == "active" and snmp_check.rc != 0
