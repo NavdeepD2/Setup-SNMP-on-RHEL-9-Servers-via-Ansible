@@ -5,8 +5,11 @@ Playbook will do the followings:
 - If not installed, Install net-snmp package
 - Backup original snmpd.conf to /etc/snmp/snmpd.conf_{date and time}_before-install_backup
 - Modify snmpd.conf file
+- 
 -- Commenting out these existing lines
+  
 syslocation Unknown (edit /etc/snmp/snmpd.conf)
+
 syscontact Root <root@localhost> (configure /etc/snmp/snmp.local.conf)
 
 - Append snmp.conf file with following lines, so that you can change the parameters
