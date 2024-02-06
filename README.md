@@ -4,9 +4,7 @@ Playbook will do the followings:
 - Check if net-snmp package is installed, If Installed, Skip every next step
 - If not installed, Install net-snmp package
 - Backup original snmpd.conf to /etc/snmp/snmpd.conf_{date and time}_before-install_backup
-- Modify snmpd.conf file
-- 
--- Commenting out these existing lines
+- Commenting out these existing lines in snmpd.conf
   
 syslocation Unknown (edit /etc/snmp/snmpd.conf)
 
